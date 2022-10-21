@@ -80,7 +80,7 @@ for line in settings.readlines():
     hidden_size = 16
     lr_cycle = 200
     lr_rate = 0.7
-    epoch_size = 12
+    epoch_size = 20
     target_step = 4
 
     info = line.replace('\n', '').split(',')

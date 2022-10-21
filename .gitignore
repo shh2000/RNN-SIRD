@@ -2,4 +2,5 @@ pics/*
 dats/*
 venv/*
 .idea/*
+saved_model/*
 

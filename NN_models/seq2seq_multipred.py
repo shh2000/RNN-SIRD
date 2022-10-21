@@ -27,7 +27,7 @@ class EnDeModel(torch.nn.Module):
             y = self.linear_before_enc(u_tmp)
             y, h_enc = self.enc_rnn(y, h_enc)
             h_enc = torch.sigmoid(h_enc)
-        y = torch.zeros(1, 1, self.hidden_size)
+        y = y
         h_dec = h_enc
 
         betat = []
@@ -75,7 +75,7 @@ class EnDeModel(torch.nn.Module):
             y = self.linear_before_enc(u_tmp)
             y, h_enc = self.enc_rnn(y, h_enc)
             h_enc = torch.sigmoid(h_enc)
-        y = torch.zeros(1, 1, self.hidden_size)
+        y = y
         h_dec = h_enc
 
         betat = []
@@ -99,7 +99,7 @@ class EnDeModel(torch.nn.Module):
             y = self.linear_before_enc(u_tmp)
             y, h_enc = self.enc_rnn(y, h_enc)
             h_enc = torch.sigmoid(h_enc)
-        y = torch.zeros(1, 1, self.hidden_size)
+        y = y
         h_dec = h_enc
 
         betat = []

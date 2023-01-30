@@ -1,5 +1,5 @@
 import torch
-from NN_models.seq2seq_multipred import EnDeModel
+from NN_models.seq2seq_multipred_cuda import EnDeModel
 import datetime as dt
 from matplotlib import pyplot as plt
 from math import sqrt
@@ -90,7 +90,7 @@ recover_rate = torch.tensor([[base_recover_rate]])
 death_rate = torch.tensor([[base_death_rate]])
 beta_history = torch.tensor([[df[3][:history_days]]])
 
-model = EnDeModel(recover_rate, death_rate, history_days, u_length, hidden_size)
+model = EnDeModel(recover_rate.cuda(), death_rate.cuda(), history_days, u_length, hidden_size).cuda()
 optimizer = torch.optim.Adam(model.parameters(), lr=base_lr)
 
 for epoch in range(epoch * lr_cycle):
@@ -100,7 +100,7 @@ for epoch in range(epoch * lr_cycle):
             params['lr'] *= lr_rate
 
     optimizer.zero_grad()
-    outputs, foo = model(beta_history, sird_init, target_step)
+    outputs, foo = model(beta_history.cuda(), sird_init.cuda(), target_step)
 
     i_loss_origin = (sird_final[0][0][1] - outputs[0][0][1]) ** 2
 
@@ -112,10 +112,10 @@ for epoch in range(epoch * lr_cycle):
 
     i_loss = torch.sqrt(i_loss)
 
-    u = model.probe_u(beta_history)
+    u = model.probe_u(beta_history.cuda())
     u_loss_abs = -u.sum()
 
-    weights = torch.arange(0.2, 0.0, -0.2 / u_length)
+    weights = torch.arange(0.2, 0.0, -0.2 / u_length).cuda()
     u_policy_loss = ((u - weights) ** 2).sum()
 
     loss = i_loss
@@ -128,8 +128,8 @@ print('@@@@@')
 print(i_loss / target_step, u_loss_abs, u_policy_loss)
 print('*****')
 
-beta_pred = torch.cat([beta_history, model.probe_u(beta_history)], dim=2)
-outputs, foo = model(beta_history, sird_init, target_step)
+beta_pred = torch.cat([beta_history, model.probe_u(beta_history.cuda())], dim=2)
+outputs, foo = model(beta_history.cuda(), sird_init.cuda(), target_step)
 
 u = torch.tensor(df[3][history_days:])
 u_loss_abs = - u.sum()
@@ -168,7 +168,7 @@ for i in range(future_days - 1):
     newconf_true.append(float(df[0][i + 1]) - float(df[0][i]))
 
 ## pred cases
-cases = model.probe_x(beta_history, sird_init)
+cases = model.probe_x(beta_history.cuda(), sird_init.cuda())
 last = sird_init_list[1]
 for item in cases:
     today = float(item[0][0][0])

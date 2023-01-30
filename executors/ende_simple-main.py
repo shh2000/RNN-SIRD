@@ -1,5 +1,5 @@
 import torch
-from NN_models.seq2seq_multipred import EnDeModel
+from NN_models.fc_model import EnDeModel
 import datetime as dt
 from matplotlib import pyplot as plt
 from math import sqrt

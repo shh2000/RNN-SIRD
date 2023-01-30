@@ -1,7 +1,6 @@
 import torch
-from NN_models.seq2seq_multipred import EnDeModel
+from NN_models.exp_rnnrnn import EnDeModel
 import datetime as dt
-from matplotlib import pyplot as plt
 
 areacn2en = {
     "美国": "U.S.",
@@ -67,21 +66,22 @@ def get_casedata(areaname, popu, start_date, history_days, future_days):
 
 settings = open('../exp_settings.csv', encoding='utf8')
 settings.readline()
-for line in settings.readlines():
+for i in range(11):
+
+    line = settings.readline()
     torch.manual_seed(17373507)
     ## 基本配置
 
     future_days = 14  # 算上了今天这一天。例如，start选择为4.10，history=5，future=8，则history的日期为5-9，future的日期为10-17，betatrue的对应下标为6-10
     history_days = 5
-    base_lr = 0.01
+    base_lr = 0.1
 
     ## 超参
-
-    hidden_size = 16
-    lr_cycle = 200
+    lr_cycle = 300
     lr_rate = 0.7
-    epoch_size = 20
-    target_step = 4
+    epoch_size = 10
+    hidden_size = 16
+    target_step = 5
 
     info = line.replace('\n', '').split(',')
     y = int(info[1])
@@ -180,101 +180,9 @@ for line in settings.readlines():
     print(i_loss / target_step, u_loss_abs, u_policy_loss)
     print('*****')
     """
-    str_file = open('../dats/' + area + '_' + start_date.strftime('%Y%m%d') + '_loss.log', 'w', encoding='utf8')
-    str_file.write('Prediction loss: ')
-    str_file.write(str(round(float(i_loss / target_step), 5)))
-    str_file.write('\n')
-    str_file.write('Finance abs loss: ')
-    str_file.write(str(round(float(u_loss_abs), 5)))
-    str_file.write('\n')
-    str_file.write('Finance var loss: ')
-    str_file.write(str(round(float(u_policy_loss), 5)))
-    str_file.write('\n')
-
-    beta_pred = torch.cat([beta_history, model.probe_u(beta_history)], dim=2)
-    outputs, foo = model(beta_history, sird_init, target_step)
-
-    u = torch.tensor(df[3][history_days:])
-    u_loss_abs = - u.sum()
-
-    ustart = float(df[3][history_days - 1])
-    uend = float(df[3][history_days + future_days - 2])
-    weights = torch.arange(ustart, uend, (uend - ustart) * 1.00001 / u_length)
-    u_policy_loss = ((u - weights) ** 2).sum()
-    # print(u_loss_abs, u_policy_loss)
-    str_file.write('True abs loss: ')
-    str_file.write(str(round(float(u_loss_abs), 5)))
-    str_file.write('\n')
-    str_file.write('True var loss: ')
-    str_file.write(str(round(float(u_policy_loss), 5)))
-    str_file.write('\n')
-    str_file.close()
-
-    plt.figure()
-    plt.plot(list(beta_pred[0][0].detach().numpy()), 'r', label='Pred', linewidth=4)
-    print(area, start_date)
-    print(list(beta_pred[0][0].detach().numpy()))
-    plt.plot(df[3], 'b', label='True', linewidth=2)
-    plt.title(areacn2en[area] + ' Controlled U Compare')
-    plt.xlabel('days')
-    plt.ylabel('u')
-    plt.legend()
-    plt.savefig('../pics/' + area + '_' + start_date.strftime('%Y%m%d') + '_u')
-    plt.close()
-
-    t_range_subdt = [start_date + dt.timedelta(days=x + 1) for x in range(future_days - 1)]
-
-    ## true cases
-    newconf_true = []
-    newconf_pred = []
-    for i in range(future_days - 1):
-        newconf_true.append(float(df[0][i + 1]) - float(df[0][i]))
-
-    ## pred cases
-    cases = model.probe_x(beta_history, sird_init)
-    last = sird_init_list[1]
-    for item in cases:
-        today = float(item[0][0][0])
-        newconf_pred.append(today - last)
-        last = today
-
-    plt.figure()
-    # plt.yscale('log')
-    plt.plot(t_range_subdt, newconf_pred, "r", label='Optimized Controlled I compartment')
-    plt.plot(t_range_subdt, newconf_true, "b*:", label='Real Dailynew I compartment')
-    plt.title(areacn2en[area] + ' Dailynew I compartment Compare')
-    plt.ylabel('number')
-    plt.gcf().autofmt_xdate()
-    plt.legend()
-    plt.savefig('../pics/' + area + '_' + start_date.strftime('%Y%m%d') + '_x')
-    plt.close()
-
-    t_range_subdt = [start_date + dt.timedelta(days=x + 1) for x in range(future_days + target_step - 1)]
-    wholeconf_pred = []
-    wholeconf_true = []
-    for i in range(future_days):
-        wholeconf_true.append(float(df[0][i]))
-    cases = model.probe_x(beta_history, sird_init)
-    wholeconf_pred = [sird_init_list[1]]
-    for item in cases:
-        wholeconf_pred.append(float(item[0][0][0]))
-    pred_target = []
-    ground_truth = []
-    for item in range(target_step - 1):
-        sird_final_foo_item = sird_final_foo[item]
-        foo_item = foo[item]
-        ground_truth.append(float(sird_final_foo_item[0][0][1]))
-        pred_target.append(float(foo_item[0][0][1]))
-
-    plt.figure()
-    # plt.yscale('log')
-    plt.plot(t_range_subdt, wholeconf_pred + pred_target, "r", label='Optimized Controlled I compartment')
-    plt.plot(t_range_subdt, wholeconf_true + ground_truth, "b*:", label='Real Dailynew I compartment')
-    plt.axvline(t_range_subdt[future_days - 1], color='g', linestyle='--',
-                label='Predict Edge(before: predict, after: target)')
-    plt.title(areacn2en[area] + ' Accumulated I compartment Compare')
-    plt.ylabel('number')
-    plt.gcf().autofmt_xdate()
-    plt.legend()
-    plt.savefig('../pics/' + area + '_' + start_date.strftime('%Y%m%d') + '_whole')
-    plt.close()
+    print(target_step, hidden_size, area, loss / target_step)
+    settings.readline()
+    settings.readline()
+    settings.readline()
+    settings.readline()
+    settings.readline()

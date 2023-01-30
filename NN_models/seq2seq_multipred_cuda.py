@@ -126,22 +126,15 @@ class EnDeModel(torch.nn.Module):
 
 
 if __name__ == '__main__':
-    recover_rate = 0.3
-    death_rate = 0.01
-    model = EnDeModel(recover_rate, death_rate, 5, 10, 16)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    recover_rate = torch.tensor([0.01])
+    death_rate = torch.tensor([0.03])
+    model = EnDeModel(recover_rate, death_rate, 5, 8, 16)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.05)
     optimizer.zero_grad()
-    beta = torch.tensor([[[.25, .2, .3, .4, .46]]]).cuda()
-    sird = torch.tensor([[[9974., 10., 15., 1., 10000.]]]).cuda()
-    y_label = torch.tensor([[[9757., 98., 139., 5., 10000.]]]).cuda()
-    for i in range(700):
-        y_pred, foo = model(beta, sird, 1)
-        loss = (y_label[0][0][1] - y_pred[0][0][1]) ** 2
-        loss.backward()
-        optimizer.step()
-        if i%100 == 0:
-            print(loss)
-            for params in optimizer.param_groups:
-                params['lr'] *= 0.7
-
-            print(y_pred)
+    beta = torch.tensor([[[.3, .2, .3, .15, .4]]])
+    sird = torch.tensor([[[9974., 10., 15., 1., 10000.]]])
+    y_pred = model(beta, sird)
+    y_label = torch.tensor([[[9934., 20., 44., 2., 10000.]]])
+    loss = (y_label[0][0][-1] - y_pred[0][0][-1]) ** 2
+    loss.backward()
+    optimizer.step()
